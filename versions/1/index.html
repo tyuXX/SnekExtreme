@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Snek // EXTREME</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <div class="game-container">
+        <div class="game-info">
+            <h1>Snek // EXTREME</h1>
+            <div class="scores">
+                <div class="score">Score: <span id="score">0</span></div>
+                <div class="high-score">
+                    <span class="high-score-label">High Score</span>
+                    <span class="difficulty-badge" id="currentDifficulty">Medium</span>
+                    <span id="highScore">0</span>
+                </div>
+            </div>
+            <div class="controls">
+                <div class="difficulty-selector">
+                    <label for="difficulty">Difficulty:</label>
+                    <select id="difficulty" disabled></select>
+                </div>
+                <div class="controls-row">
+                    <button id="startBtn">Start Game</button>
+                    <button id="pauseBtn" disabled>Pause</button>
+                    <button id="resetBtn">Reset</button>
+                </div>
+            </div>
+        </div>
+        <canvas id="gameCanvas"></canvas>
+    </div>
+    <script src="game.js"></script>
+</body>
+
+</html>
