@@ -11,4 +11,3 @@ bro who cares
 ## Controls
 - Arrow keys or WASD to move the snake.
 - Spacebar to pause the game.
-- R to reset the game.
