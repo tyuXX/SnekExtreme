@@ -12,7 +12,19 @@ class Game {
         this.highScore = this.getHighScore();
         this.gameOver = false; // Start with game over state
         this.interval = null;
-        this.gameSpeed = 100;
+        this.rocks = [];
+        
+        // Difficulty settings
+        this.difficultySettings = {
+            easy: { speed: 150, scoreMultiplier: 1 },
+            medium: { speed: 100, scoreMultiplier: 2 },
+            hard: { speed: 75, scoreMultiplier: 3 },
+            extreme: { speed: 50, scoreMultiplier: 5 }
+        };
+        
+        // Set default difficulty
+        this.difficulty = 'medium';
+        this.gameSpeed = this.difficultySettings[this.difficulty].speed;
         
         // Set base dimensions (these will be scaled by resizeCanvas)
         this.baseWidth = 600;
@@ -79,24 +91,42 @@ class Game {
         };
     }
 
+    spawnRock() {
+        const maxX = Math.floor(this.canvas.width / this.gridSize) - 1;
+        const maxY = Math.floor(this.canvas.height / this.gridSize) - 1;
+        //check if rock is on snake
+        if(this.snake.some(segment => segment.x === Math.floor(Math.random() * maxX) && segment.y === Math.floor(Math.random() * maxY))){
+            this.spawnRock();
+            return;
+        }
+        this.rocks.push({
+            x: Math.floor(Math.random() * maxX),
+            y: Math.floor(Math.random() * maxY)
+        });
+    }
+
     togglePause() {
         if (this.gameOver) return;
         
         this.isPaused = !this.isPaused;
-        const pauseBtn = document.getElementById('pauseBtn');
         
         if (this.isPaused) {
             clearInterval(this.interval);
             this.interval = null;
-            pauseBtn.textContent = 'Resume';
-            pauseBtn.classList.add('paused');
+            document.getElementById('pauseBtn').textContent = 'Resume';
+            document.getElementById('pauseBtn').classList.add('paused');
             this.drawPauseScreen();
         } else {
-            this.interval = setInterval(() => this.gameLoop(), this.gameSpeed);
-            pauseBtn.textContent = 'Pause';
-            pauseBtn.classList.remove('paused');
+            this.startGameLoop();
+            document.getElementById('pauseBtn').textContent = 'Pause';
+            document.getElementById('pauseBtn').classList.remove('paused');
             this.draw();
         }
+    }
+    
+    startGameLoop() {
+        if (this.interval) clearInterval(this.interval);
+        this.interval = setInterval(() => this.gameLoop(), this.gameSpeed);
     }
     
     drawPauseScreen() {
@@ -146,6 +176,20 @@ class Game {
     }
 
     setupControls() {
+        // Setup difficulty selector
+        this.difficultySelect = document.getElementById('difficulty');
+        this.difficultySelect.value = this.difficulty;
+        this.difficultySelect.disabled = false;
+        
+        this.difficultySelect.addEventListener('change', (e) => {
+            if (this.gameOver) {
+                this.difficulty = e.target.value;
+                this.gameSpeed = this.difficultySettings[this.difficulty].speed;
+                this.highScore = this.getHighScore(); // Update high score for the new difficulty
+                this.updateHighScoreDisplay();
+            }
+        });
+        
         document.addEventListener('keydown', (e) => {
             // Handle game over state
             if (this.gameOver) {
@@ -218,32 +262,50 @@ class Game {
     }
 
     getHighScore() {
-        return parseInt(localStorage.getItem('snekExtremeHighScore')) || 0;
+        const highScores = JSON.parse(localStorage.getItem('snekExtremeHighScores') || '{}');
+        return highScores[this.difficulty] || 0;
     }
 
     updateHighScore() {
         if (this.score > this.highScore) {
             this.highScore = this.score;
-            localStorage.setItem('snekExtremeHighScore', this.highScore.toString());
+            const highScores = JSON.parse(localStorage.getItem('snekExtremeHighScores') || '{}');
+            highScores[this.difficulty] = this.highScore;
+            localStorage.setItem('snekExtremeHighScores', JSON.stringify(highScores));
             this.updateHighScoreDisplay();
         }
     }
 
     updateHighScoreDisplay() {
         document.getElementById('highScore').textContent = this.highScore;
+        const difficultyBadge = document.getElementById('currentDifficulty');
+        difficultyBadge.textContent = this.difficulty.toUpperCase();
+        difficultyBadge.setAttribute('data-difficulty', this.difficulty);
+        
+        // Update the high score display to show which difficulty it's for
+        const highScoreLabel = document.querySelector('.high-score');
+        highScoreLabel.setAttribute('title', `High Score (${this.difficulty.charAt(0).toUpperCase() + this.difficulty.slice(1)})`);
     }
 
     startGame() {
+        this.resetGame();
         this.gameOver = false;
         this.isPaused = false;
-        this.score = 0;
+        
+        // Update difficulty from selector if game is starting fresh
+        if (this.snake.length === 0) {
+            this.difficulty = this.difficultySelect.value;
+            this.gameSpeed = this.difficultySettings[this.difficulty].speed;
+            this.setupGame();
+        }
+        
         document.getElementById('score').textContent = this.score;
         document.getElementById('pauseBtn').disabled = false;
         document.getElementById('pauseBtn').textContent = 'Pause';
         document.getElementById('pauseBtn').classList.remove('paused');
-        this.setupGame();
-        if (this.interval) clearInterval(this.interval);
-        this.interval = setInterval(() => this.gameLoop(), this.gameSpeed);
+        this.difficultySelect.disabled = true;
+        
+        this.startGameLoop();
         this.draw();
     }
 
@@ -251,7 +313,10 @@ class Game {
         this.gameOver = true;
         this.isPaused = false;
         this.snake = [];
+        this.rocks = [];
         this.food = null;
+        this.highScore = this.getHighScore(); // Refresh high score when resetting
+        this.difficultySelect.disabled = false;
         this.score = 0;
         document.getElementById('score').textContent = '0';
         document.getElementById('pauseBtn').disabled = true;
@@ -263,7 +328,6 @@ class Game {
             clearInterval(this.interval);
             this.interval = null;
         }
-        this.draw();
     }
 
     gameLoop() {
@@ -302,12 +366,19 @@ class Game {
 
         // Check for food collision
         if (head.x === this.food.x && head.y === this.food.y) {
-            this.score++;
+            const multiplier = this.difficultySettings[this.difficulty].scoreMultiplier;
+            this.score += multiplier;
             document.getElementById('score').textContent = this.score;
             this.updateHighScore();
             this.spawnFood();
+            this.spawnRock();
         } else {
             this.snake.pop();
+        }
+
+        // Check for rock collision
+        if(this.snake.some(segment => this.rocks.some(rock => segment.x === rock.x && segment.y === rock.y))) {
+            this.endGame();
         }
     }
 
@@ -343,6 +414,17 @@ class Game {
             this.gridSize - 2,
             this.gridSize - 2
         );
+
+        // Draw rocks
+        this.ctx.fillStyle = 'gray';
+        this.rocks.forEach(rock => {
+            this.ctx.fillRect(
+                rock.x * this.gridSize,
+                rock.y * this.gridSize,
+                this.gridSize - 2,
+                this.gridSize - 2
+            );
+        });
 
         if (this.interval) {
             requestAnimationFrame(() => this.draw());

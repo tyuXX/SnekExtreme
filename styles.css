@@ -47,22 +47,133 @@ h1 {
 .score, .high-score {
     font-size: 1.5rem;
     background: rgba(0, 0, 0, 0.2);
-    padding: 0.5rem 1rem;
-    border-radius: 8px;
-    min-width: 150px;
+    padding: 0.8rem 1.2rem;
+    border-radius: 12px;
+    min-width: 200px;
     text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
 }
 
 .high-score {
     color: #ffd700;
+    position: relative;
+    padding-top: 1.5rem;
+}
+
+.high-score-label {
+    position: absolute;
+    top: 0.3rem;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.8rem;
+    opacity: 0.8;
+    white-space: nowrap;
+}
+
+.difficulty-badge {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 0.2rem 0.6rem;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #fff;
+    position: absolute;
+    top: -0.5rem;
+    right: 0.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Difficulty-specific badge colors */
+.difficulty-badge[data-difficulty="easy"] {
+    background: rgba(76, 175, 80, 0.2);
+    color: #4CAF50;
+}
+
+.difficulty-badge[data-difficulty="medium"] {
+    background: rgba(255, 193, 7, 0.2);
+    color: #FFC107;
+}
+
+.difficulty-badge[data-difficulty="hard"] {
+    background: rgba(255, 87, 34, 0.2);
+    color: #FF5722;
+}
+
+.difficulty-badge[data-difficulty="extreme"] {
+    background: rgba(244, 67, 54, 0.2);
+    color: #F44336;
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0% { opacity: 0.7; }
+    50% { opacity: 1; }
+    100% { opacity: 0.7; }
 }
 
 .controls {
     display: flex;
-    gap: 0.5rem;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
     margin-bottom: 2rem;
+    width: 100%;
+}
+
+.difficulty-selector {
+    margin-bottom: 0.5rem;
+    width: 100%;
+    max-width: 300px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+difficulty-selector label {
+    color: #fff;
+    font-size: 1rem;
+    white-space: nowrap;
+}
+
+#difficulty {
+    padding: 0.5rem;
+    border-radius: 6px;
+    border: 1px solid #4CAF50;
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    font-size: 1rem;
+    width: 100%;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+#difficulty option {
+    color: #000;
+}
+
+#difficulty:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+#difficulty:not(:disabled):hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: #45a049;
+}
+
+.controls-row {
+    display: flex;
+    gap: 0.5rem;
     flex-wrap: wrap;
     justify-content: center;
+    width: 100%;
 }
 
 button {
