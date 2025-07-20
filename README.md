@@ -1,4 +1,4 @@
-# Snek Extreme
+# Snek // EXTREME
 
 ## By [tyuXX](https://github.com/tyuXX)
 
