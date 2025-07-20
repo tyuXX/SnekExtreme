@@ -2,7 +2,7 @@ class Game {
     constructor() {
         this.canvas = document.getElementById('gameCanvas');
         this.ctx = this.canvas.getContext('2d');
-        this.gridSize = 20;
+        this.gridSize = 10;
         
         // Initialize game state
         this.snake = [];
@@ -10,13 +10,16 @@ class Game {
         this.direction = 'right';
         this.score = 0;
         this.highScore = this.getHighScore();
-        this.gameOver = true; // Start with game over state
+        this.gameOver = false; // Start with game over state
         this.interval = null;
         this.gameSpeed = 100;
         
         // Set base dimensions (these will be scaled by resizeCanvas)
         this.baseWidth = 600;
         this.baseHeight = 400;
+        
+        // Game state
+        this.isPaused = true;
         
         // Setup game and controls
         this.setupGame();
@@ -28,6 +31,13 @@ class Game {
         
         // Handle window resize
         window.addEventListener('resize', () => this.resizeCanvas());
+        
+        // Handle pause on window blur
+        window.addEventListener('blur', () => {
+            if (!this.gameOver && !this.isPaused) {
+                this.togglePause();
+            }
+        });
     }
 
     setupGame() {
@@ -69,9 +79,94 @@ class Game {
         };
     }
 
+    togglePause() {
+        if (this.gameOver) return;
+        
+        this.isPaused = !this.isPaused;
+        const pauseBtn = document.getElementById('pauseBtn');
+        
+        if (this.isPaused) {
+            clearInterval(this.interval);
+            this.interval = null;
+            pauseBtn.textContent = 'Resume';
+            pauseBtn.classList.add('paused');
+            this.drawPauseScreen();
+        } else {
+            this.interval = setInterval(() => this.gameLoop(), this.gameSpeed);
+            pauseBtn.textContent = 'Pause';
+            pauseBtn.classList.remove('paused');
+            this.draw();
+        }
+    }
+    
+    drawPauseScreen() {
+        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        
+        this.ctx.fillStyle = 'white';
+        this.ctx.font = '30px Arial';
+        this.ctx.textAlign = 'center';
+        this.ctx.fillText('PAUSED', this.canvas.width / 2, this.canvas.height / 2);
+        this.ctx.font = '16px Arial';
+        this.ctx.fillText('Press P or click Resume to continue', this.canvas.width / 2, this.canvas.height / 2 + 40);
+    }
+    
+    drawGameOverScreen() {
+        // Semi-transparent overlay
+        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        
+        // Game Over text
+        this.ctx.fillStyle = '#ff4d4d';
+        this.ctx.font = 'bold 40px Arial';
+        this.ctx.textAlign = 'center';
+        this.ctx.fillText('GAME OVER', this.canvas.width / 2, this.canvas.height / 2 - 60);
+        
+        // Final Score
+        this.ctx.fillStyle = 'white';
+        this.ctx.font = '24px Arial';
+        this.ctx.fillText(`Final Score: ${this.score}`, this.canvas.width / 2, this.canvas.height / 2);
+        
+        // High Score
+        const highScore = this.getHighScore();
+        const isNewHighScore = this.score > highScore;
+        this.ctx.fillStyle = isNewHighScore ? '#4CAF50' : 'white';
+        this.ctx.font = isNewHighScore ? 'bold 22px Arial' : '22px Arial';
+        this.ctx.fillText(
+            isNewHighScore ? 'New High Score!' : `High Score: ${highScore}`,
+            this.canvas.width / 2,
+            this.canvas.height / 2 + 40
+        );
+        
+        // Instructions
+        this.ctx.fillStyle = '#aaaaaa';
+        this.ctx.font = '16px Arial';
+        this.ctx.fillText('Press SPACE to play again', this.canvas.width / 2, this.canvas.height / 2 + 100);
+        this.ctx.fillText('or click Start Game', this.canvas.width / 2, this.canvas.height / 2 + 130);
+    }
+
     setupControls() {
         document.addEventListener('keydown', (e) => {
-            if (this.gameOver) return;
+            // Handle game over state
+            if (this.gameOver) {
+                if (e.key === ' ') {  // Space to restart
+                    if (this.gameOver){
+                        this.startGame();
+                    } else {
+                        this.togglePause();
+                    }
+                }
+                return;
+            }
+            
+            // Handle pause with P key
+            if (e.key.toLowerCase() === 'p') {
+                this.togglePause();
+                return;
+            }
+            
+            if (this.isPaused) return;
+            
             switch(e.key.toLowerCase()) {
                 // Arrow keys
                 case 'arrowup':
@@ -106,7 +201,15 @@ class Game {
         });
 
         document.getElementById('startBtn').addEventListener('click', () => {
-            this.startGame();
+            if (this.isPaused) {
+                this.togglePause();
+            } else {
+                this.startGame();
+            }
+        });
+
+        document.getElementById('pauseBtn').addEventListener('click', () => {
+            this.togglePause();
         });
 
         document.getElementById('resetBtn').addEventListener('click', () => {
@@ -132,8 +235,12 @@ class Game {
 
     startGame() {
         this.gameOver = false;
+        this.isPaused = false;
         this.score = 0;
         document.getElementById('score').textContent = this.score;
+        document.getElementById('pauseBtn').disabled = false;
+        document.getElementById('pauseBtn').textContent = 'Pause';
+        document.getElementById('pauseBtn').classList.remove('paused');
         this.setupGame();
         if (this.interval) clearInterval(this.interval);
         this.interval = setInterval(() => this.gameLoop(), this.gameSpeed);
@@ -142,10 +249,14 @@ class Game {
 
     resetGame() {
         this.gameOver = true;
+        this.isPaused = false;
         this.snake = [];
         this.food = null;
         this.score = 0;
         document.getElementById('score').textContent = '0';
+        document.getElementById('pauseBtn').disabled = true;
+        document.getElementById('pauseBtn').textContent = 'Pause';
+        document.getElementById('pauseBtn').classList.remove('paused');
         this.highScore = this.getHighScore();
         this.updateHighScoreDisplay();
         if (this.interval) {
@@ -174,14 +285,14 @@ class Game {
         // Check for wall collisions
         if (head.x < 0 || head.x >= this.canvas.width / this.gridSize ||
             head.y < 0 || head.y >= this.canvas.height / this.gridSize) {
-            this.gameOver = true;
+            this.endGame();
             return;
         }
 
         // Check for self collision
         for (let i = 0; i < this.snake.length; i++) {
             if (head.x === this.snake[i].x && head.y === this.snake[i].y) {
-                this.gameOver = true;
+                this.endGame();
                 return;
             }
         }
@@ -198,6 +309,15 @@ class Game {
         } else {
             this.snake.pop();
         }
+    }
+
+    endGame() {
+        this.gameOver = true;
+        if (this.interval) {
+            clearInterval(this.interval);
+            this.interval = null;
+        }
+        this.drawGameOverScreen();
     }
 
     draw() {
@@ -224,10 +344,7 @@ class Game {
             this.gridSize - 2
         );
 
-        if (this.gameOver) {
-            this.ctx.fillStyle = 'rgba(255, 0, 0, 0.5)';
-            this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-        } else {
+        if (this.interval) {
             requestAnimationFrame(() => this.draw());
         }
     }
